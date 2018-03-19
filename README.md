@@ -83,7 +83,3 @@ Takes one of several paths based on the value of a variable. Each port can link 
 ### Node
 
 Does nothing. Can link to one Text, Node, Set, or Branch, or to one or more Choices.
-
-```
-
-```
