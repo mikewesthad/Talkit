@@ -7,7 +7,8 @@
     "lib": "lib"
   },
   "scripts": {
-    "dev": "browser-sync start --files \"*.css, *.js\" --server --port 8080"
+    "dev":
+      "browser-sync start --files \"*.html, *.css, *.js\" --server --port 8080"
   },
   "repository": {
     "type": "git",
