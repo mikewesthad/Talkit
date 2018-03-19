@@ -1,89 +1,89 @@
 # Talkit
-Web Based, Non-Linear Game Dialogue Editor.
-#
-Talkit is a fork of [et1337's](https://github.com/et1337) wonderful [The Poor Man's Dialogue Tree](http://et1337.com/2014/05/16/the-poor-mans-dialogue-tree/) which is currently part of [Lemma](https://github.com/et1337/Lemma) project.
-##Description.
-Talkit is a Non-linear, node based, game dialog editor. 
-It runs on [jointJS](http://www.jointjs.com/). It exports to JSON with game ready content.
-![alt text](http://i.imgur.com/7lu8NIy.png?1)
 
-##Nodes
-###Text
-Display a message from the specified actor.  
-Actor: Specify the actor who will say the speech.  
-Speech: The text the actor will say.  
+A customized fork of Talkit for used to generate structured dialogue for games in [mikewesthad/financial-literacy-playlist-games](https://github.com/mikewesthad/financial-literacy-playlist-games)
 
-###Choice
-Intended to populate the players choices for responses.  
-Title: The title of the choice. This is useful for cases when the buttons the player would have to chose from
-will differ from the actual speech he will say.   
-Speech: The text the actor will say.  
+Talkit is originally a fork of [et1337's](https://github.com/et1337) wonderful [The Poor Man's Dialogue Tree](http://et1337.com/2014/05/16/the-poor-mans-dialogue-tree/) which is currently part of [Lemma](https://github.com/et1337/Lemma) project.
 
-### Set
-Sets a variable to a value. Can link to one Text, Node, Set, or Branch.
+## Description
 
-###Branch
-Takes one of several paths based on the value of a variable. Each port can link to one Text, Node, Set, or Branch.
+Talkit is a non-linear, node based, game dialog editor. It runs on [jointJS](http://www.jointjs.com/). It exports to JSON with game ready content.
 
-###Node
-Does nothing. Can link to one Text, Node, Set, or Branch, or to one or more Choices.
+![demo](./demo.png)
 
-##Usage
-Fire up the HTML, make your dialog and export.  
-You can add ?load="file.json" to the URL to load a graph saved on cache.  
-Example Output:
-```javascript
+Example game format:
+
+```js
 [
-    {
-        "type": "Text",
-        "id": "227b6f95-2759-4bda-8364-3bcbcb2cbf4d",
-        "actor": "Detective",
-        "name": "Now tell me Victor.\nWhere were you last night?",
-        "choices": [
-            "b24806af-4923-4881-84c8-93426cbe3c19",
-            "69261cd7-1cfe-4088-8c7c-99f19bc5fb25"
-        ]
-    },
-    {
-        "type": "Choice",
-        "id": "69261cd7-1cfe-4088-8c7c-99f19bc5fb25",
-        "title": "Honest Answer",
-        "name": "I was at her house.\nBut I dind't saw anything strange.",
-        "next": "6e9f9c69-3efc-447b-ac3a-ade28635b106"
-    },
-    {
-        "type": "Choice",
-        "id": "b24806af-4923-4881-84c8-93426cbe3c19",
-        "title": "Lie",
-        "name": "",
-        "next": "fe9c4ac5-3f5a-4df1-91fe-e45b523017d7"
-    },
-    {
-        "type": "Set",
-        "id": "6e9f9c69-3efc-447b-ac3a-ade28635b106",
-        "variable": "Honest",
-        "value": "true",
-        "next": "fd3067f6-2afc-42e8-a697-2bb5739a8438"
-    },
-    {
-        "type": "Set",
-        "id": "fe9c4ac5-3f5a-4df1-91fe-e45b523017d7",
-        "variable": "Honest",
-        "value": "false",
-        "next": "fd3067f6-2afc-42e8-a697-2bb5739a8438"
-    },
-    {
-        "type": "Text",
-        "id": "fd3067f6-2afc-42e8-a697-2bb5739a8438",
-        "actor": "Detective",
-        "name": "That will be all for now.",
-        "next": null
-    }
-]
+  {
+    type: "Text",
+    id: "92b0872d-f0b2-472e-9d8d-1e9080a88014",
+    actor: "Paola",
+    name: "Nice to meet you, I’m Paola.",
+    choices: [
+      "28e003da-1197-4b67-aeee-e73562c1f434",
+      "8c07518d-79c4-4ec6-aa55-2fdb465f2360"
+    ]
+  },
+  {
+    type: "Choice",
+    id: "28e003da-1197-4b67-aeee-e73562c1f434",
+    title: "Boss",
+    name: "Ask how they know your boss.",
+    next: "103d17f3-cdcd-4a8c-9c6a-01ee9ce7dfc9"
+  },
+  {
+    type: "Choice",
+    id: "8c07518d-79c4-4ec6-aa55-2fdb465f2360",
+    title: "Chicago",
+    name: "Ask about living in Chicago.",
+    next: "8dc41ced-5e3f-4fd6-8f6e-340828e0f9da"
+  }
+];
 ```
 
-##Not Implemented Yet - TODO:.
-* Add ?import="file.json" to import a graph from disk.
-* Add the ability to make a node a starting node.
-* Display the Id of the node on each node.
+## Usage
 
+Installation:
+
+```
+npm install
+```
+
+Running:
+
+```
+npm run dev
+```
+
+## Nodes
+
+### Text
+
+Display a message from the specified actor.  
+Actor: Specify the actor who will say the speech.  
+Speech: The text the actor will say.
+
+### Choice
+
+Intended to populate the players choices for responses.  
+Title: The title of the choice. This is useful for cases when the buttons the player would have to chose from
+will differ from the actual speech he will say.
+Speech: The text the actor will say.
+
+## Unused Nodes (from original readme)
+
+### Set
+
+Sets a variable to a value. Can link to one Text, Node, Set, or Branch.
+
+### Branch
+
+Takes one of several paths based on the value of a variable. Each port can link to one Text, Node, Set, or Branch.
+
+### Node
+
+Does nothing. Can link to one Text, Node, Set, or Branch, or to one or more Choices.
+
+```
+
+```
