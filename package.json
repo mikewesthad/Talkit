@@ -1,0 +1,25 @@
+{
+  "name": "talkit",
+  "version": "1.0.0",
+  "description": "Web Based, Non-Linear Game Dialogue Editor.",
+  "main": "app.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "dev": "browser-sync start --files \"*.css, *.js\" --server --port 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikewesthad/Talkit.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mikewesthad/Talkit/issues"
+  },
+  "homepage": "https://github.com/mikewesthad/Talkit#readme",
+  "dependencies": {
+    "browser-sync": "^2.23.6"
+  }
+}
