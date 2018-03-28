@@ -10,9 +10,9 @@ body {
 }
 
 #background {
-  background-image: url("g/grid.png");
+  background-image: url("images/gridme_@2X.png");
   background-repeat: repeat;
-  opacity: 0.25;
+  opacity: 0.75;
   width: 16000px;
   height: 8000px;
   position: absolute;
@@ -170,6 +170,16 @@ button {
   box-sizing: border-box;
   background-color: #456;
   color: #fff;
+}
+
+.node select {
+  /* Enable interacting with inputs only. */
+  pointer-events: auto;
+  border: none;
+  box-sizing: border-box;
+  background-color: #456;
+  color: #fff;
+  float: right;
 }
 
 .node .label {

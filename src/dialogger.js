@@ -1,32 +1,26 @@
-function getURLParameter(name) {
-  return (
-    decodeURIComponent(
-      (new RegExp("[?|&]" + name + "=" + "([^&;]+?)(&|#|;|$)").exec(
-        location.search
-      ) || [, ""])[1].replace(/\+/g, "%20")
-    ) || null
-  );
-}
+const { dialog } = require("electron").remote;
+const fs = require("fs");
 
-function onError(e) {
-  console.log("Error", e);
-}
+const onError = e => console.log("Error", e);
 
-var fs = null;
-var loadOnStart = getURLParameter("load");
-var importOnStart = getURLParameter("import");
+const actors = [
+  { name: "Player", id: 0 },
+  { name: "Taylor", id: 1 },
+  { name: "Hannah", id: 2 },
+  { name: "Anthony", id: 3 }
+];
 
-addEventListener("app-ready", function(e) {
-  // We're running inside app.js
-  fs = require("fs");
-  $("#import").hide();
-  $("#export").hide();
-  $("#export-game").hide();
-});
+const actorsSelectHtml = `
+<select>
+  <option value="" disabled selected>Select an Actor</option>
+  ${actors
+    .map(({ name, id }) => `<option value="${id}">${name}</option>`)
+    .join("\n")}
+</select>
+`;
 
 var graph = new joint.dia.Graph();
 
-//#region DefaultLinks
 var defaultLink = new joint.dia.Link({
   attrs: {
     ".marker-target": { d: "M 10 0 L 0 5 L 10 10 z" },
@@ -36,32 +30,23 @@ var defaultLink = new joint.dia.Link({
 
 defaultLink.set("smooth", true);
 
-var allowableConnections = [
-  ["dialogue.Text", "dialogue.Text"],
-  ["dialogue.Text", "dialogue.Node"],
-  ["dialogue.Text", "dialogue.Choice"],
-  ["dialogue.Text", "dialogue.Set"],
-  ["dialogue.Text", "dialogue.Branch"],
-  ["dialogue.Node", "dialogue.Text"],
-  ["dialogue.Node", "dialogue.Node"],
-  ["dialogue.Node", "dialogue.Choice"],
-  ["dialogue.Node", "dialogue.Set"],
-  ["dialogue.Node", "dialogue.Branch"],
-  ["dialogue.Choice", "dialogue.Text"],
-  ["dialogue.Choice", "dialogue.Node"],
-  ["dialogue.Choice", "dialogue.Set"],
-  ["dialogue.Choice", "dialogue.Branch"],
-  ["dialogue.Set", "dialogue.Text"],
-  ["dialogue.Set", "dialogue.Node"],
-  ["dialogue.Set", "dialogue.Set"],
-  ["dialogue.Set", "dialogue.Branch"],
-  ["dialogue.Branch", "dialogue.Text"],
-  ["dialogue.Branch", "dialogue.Node"],
-  ["dialogue.Branch", "dialogue.Set"],
-  ["dialogue.Branch", "dialogue.Branch"]
+const allNodes = [
+  "dialogue.StartingText",
+  "dialogue.Text",
+  "dialogue.Node",
+  "dialogue.Choice",
+  "dialogue.Set",
+  "dialogue.Branch"
 ];
 
-//#endregion
+const allowableConnections = {
+  "dialogue.StartingText": allNodes,
+  "dialogue.Text": allNodes,
+  "dialogue.Node": allNodes,
+  "dialogue.Choice": allNodes.filter(n => n !== "dialogue.Choice"),
+  "dialogue.Set": allNodes.filter(n => n !== "dialogue.Choice"),
+  "dialogue.Branch": allNodes.filter(n => n !== "dialogue.Choice")
+};
 
 function validateConnection(
   cellViewS,
@@ -76,38 +61,12 @@ function validateConnection(
 
   if (cellViewS == cellViewT) return false;
 
-  if (magnetT.attributes.magnet.nodeValue !== "passive")
-    // Can't connect to an output port
-    return false;
+  // Can't connect to an output port
+  if (magnetT.attributes.magnet.nodeValue !== "passive") return false;
 
   var sourceType = cellViewS.model.attributes.type;
   var targetType = cellViewT.model.attributes.type;
-  var valid = false;
-  for (var i = 0; i < allowableConnections.length; i++) {
-    var rule = allowableConnections[i];
-    if (sourceType == rule[0] && targetType == rule[1]) {
-      valid = true;
-      break;
-    }
-  }
-  if (!valid) return false;
-
-  //COMENTED UNTIL I FIGURE WHY IT "DANCES" WHEN SNAPPIN
-  //var links = graph.getConnectedLinks(cellViewS.model);
-  //for (var i = 0; i < links.length; i++)
-  //{
-  //	var link = links[i];
-  //	if (link.attributes.source.id === cellViewS.model.id && link.attributes.source.port === magnetS.attributes.port.nodeValue && link.attributes.target.id)
-  //	{
-  //		var targetCell = graph.getCell(link.attributes.target.id);
-  //		if (targetCell.attributes.type !== targetType)
-  //			return false; // We can only connect to multiple targets of the same type
-  //		if (targetCell == cellViewT.model)
-  //			return false; // Already connected
-  //	}
-  //}
-
-  return true;
+  return allowableConnections[sourceType].includes(targetType);
 }
 
 function validateMagnet(cellView, magnet) {
@@ -163,9 +122,8 @@ joint.shapes.dialogue.BaseView = joint.shapes.devs.ModelView.extend({
     '<div class="node">',
     '<span class="label"></span>',
     '<button class="delete">x</button>',
-    '<input type="actor" class="actor" placeholder="Actor" />',
-    //'<input type="text" class="name" placeholder="Text" />',
-    '<p> <textarea type="text" class="name" rows="4" cols="27" placeholder="Speech"></textarea></p>',
+    actorsSelectHtml,
+    '<p><textarea type="text" class="name" rows="4" cols="27" placeholder="Speech"></textarea></p>',
     "</div>"
   ].join(""),
 
@@ -181,6 +139,10 @@ joint.shapes.dialogue.BaseView = joint.shapes.devs.ModelView.extend({
 
     // Prevent paper from handling pointerdown.
     this.$box.find("textarea").on("mousedown click", function(evt) {
+      evt.stopPropagation();
+    });
+
+    this.$box.find("select").on("mousedown click", function(evt) {
       evt.stopPropagation();
     });
 
@@ -207,6 +169,23 @@ joint.shapes.dialogue.BaseView = joint.shapes.devs.ModelView.extend({
         this.model.set("name", $(evt.target).val());
       }, this)
     );
+
+    const select = this.$box.find("select");
+    select.on("change", e => {
+      const selectedId = select.val();
+      this.model.set("actor-id", selectedId);
+      this.model.set(
+        "actor",
+        actors.find(({ name, id }) => selectedId == id).name
+      );
+    });
+    const selectedId = this.model.get("actor-id");
+    if (selectedId !== undefined) {
+      this.model.set(
+        "actor",
+        actors.find(({ name, id }) => selectedId == id).name
+      );
+    }
 
     this.$box
       .find(".delete")
@@ -235,12 +214,15 @@ joint.shapes.dialogue.BaseView = joint.shapes.devs.ModelView.extend({
     if (!nameField.is(":focus")) nameField.val(this.model.get("name"));
 
     // Example of updating the HTML with a data stored in the cell model.
-    var actorField = this.$box.find("input.actor");
-    if (!actorField.is(":focus")) actorField.val(this.model.get("actor"));
+    // var actorField = this.$box.find("input.actor");
+    // if (!actorField.is(":focus")) actorField.val(this.model.get("actor"));
 
     // Example of updating the HTML with a data stored in the cell model.
     var textAreaField = this.$box.find("textarea.name");
     if (!textAreaField.is(":focus")) textAreaField.val(this.model.get("name"));
+
+    const select = this.$box.find("select");
+    if (!select.is(":focus")) select.val(this.model.get("actor-id"));
 
     var label = this.$box.find(".label");
     var type = this.model.get("type").slice("dialogue.".length);
@@ -262,6 +244,22 @@ joint.shapes.dialogue.BaseView = joint.shapes.devs.ModelView.extend({
 });
 
 //#endregion
+
+joint.shapes.dialogue.StartingText = joint.shapes.devs.Model.extend({
+  defaults: joint.util.deepSupplement(
+    {
+      type: "dialogue.StartingText",
+      inPorts: [],
+      outPorts: ["output"],
+      attrs: {
+        ".outPorts circle": { unlimitedConnections: ["dialogue.Choice"] }
+      }
+    },
+    joint.shapes.dialogue.Base.prototype.defaults
+  )
+});
+
+joint.shapes.dialogue.StartingTextView = joint.shapes.dialogue.BaseView;
 
 //#region ChoiceView
 joint.shapes.dialogue.ChoiceView = joint.shapes.devs.ModelView.extend({
@@ -385,6 +383,7 @@ joint.shapes.dialogue.Text = joint.shapes.devs.Model.extend({
       actor: "",
       textarea: "Start writing",
       attrs: {
+        rect: { fill: "white", stroke: "black" },
         ".outPorts circle": { unlimitedConnections: ["dialogue.Choice"] }
       }
     },
@@ -618,7 +617,9 @@ function gameData() {
           }
           source.branches[value] = target ? target.id : null;
         } else if (
-          (source.type == "Text" || source.type == "Node") &&
+          (source.type == "Text" ||
+            source.type == "StartingText" ||
+            source.type == "Node") &&
           target &&
           target.type == "Choice"
         ) {
@@ -682,49 +683,48 @@ function promptFilename(callback) {
   }
 }
 
-function applyTextFields() {
-  $("input[type=text]").blur();
+function applyFocusedField() {
+  $(":focus").blur();
 }
 
 function save() {
-  applyTextFields();
-  if (!filename) promptFilename(doSave);
-  else doSave();
+  applyFocusedField();
+  doSave();
 }
 
 function doSave() {
-  if (filename) {
-    if (fs) {
-      fs.writeFileSync(filename, JSON.stringify(graph), "utf8");
+  if (fs) {
+    const path = dialog.showSaveDialog({ defaultPath: filename });
+    if (path) {
+      filename = path;
+      fs.writeFileSync(filename, JSON.stringify(graph), {
+        encoding: "utf8",
+        flag: "w"
+      });
       fs.writeFileSync(
-        gameFilenameFromNormalFilename(filename),
+        filename.split(".")[0] + "-game.json",
         JSON.stringify(gameData()),
-        "utf8"
+        {
+          encoding: "utf8",
+          flag: "w"
+        }
       );
-    } else {
-      if (!localStorage[filename]) addFileEntry(filename);
-      localStorage[filename] = JSON.stringify(graph);
     }
-    flash("Saved " + filename);
+  } else {
+    if (!localStorage[filename]) addFileEntry(filename);
+    localStorage[filename] = JSON.stringify(graph);
   }
+  flash("Saved " + filename);
 }
 
 function load() {
   if (fs) {
-    /// AUTOLOAD
-    window.frame.openDialog(
-      {
-        type: "open",
-        multiSelect: false
-      },
-      function(err, files) {
-        if (!err && files.length == 1) {
-          graph.clear();
-          filename = files[0];
-          graph.fromJSON(JSON.parse(fs.readFileSync(filename, "utf8")));
-        }
-      }
-    );
+    const path = dialog.showOpenDialog({ properties: ["openFile"] });
+    if (path && path.length === 1) {
+      graph.clear();
+      filename = path[0];
+      graph.fromJSON(JSON.parse(fs.readFileSync(filename, "utf8")));
+    }
   } else {
     $("#menu").show();
   }
@@ -732,7 +732,7 @@ function load() {
 
 function exportFile() {
   if (!fs) {
-    applyTextFields();
+    applyFocusedField();
     offerDownload(filename ? filename : defaultFilename, graph);
   }
 }
@@ -743,7 +743,7 @@ function gameFilenameFromNormalFilename(f) {
 
 function exportGameFile() {
   if (!fs) {
-    applyTextFields();
+    applyFocusedField();
     offerDownload(
       gameFilenameFromNormalFilename(filename ? filename : defaultFilename),
       gameData()
@@ -781,7 +781,7 @@ var paper = new joint.dia.Paper({
   width: 16000,
   height: 8000,
   model: graph,
-  gridSize: 16,
+  gridSize: 10,
   defaultLink: defaultLink,
   validateConnection: validateConnection,
   validateMagnet: validateMagnet,
@@ -796,10 +796,15 @@ paper.on("blank:pointerdown", function(e, x, y) {
   mousePosition.x = e.pageX;
   mousePosition.y = e.pageY;
   $("body").css("cursor", "move");
-  applyTextFields();
+  applyFocusedField();
 });
-paper.on("cell:pointerdown", function(e, x, y) {
-  applyTextFields();
+paper.on("cell:pointerdown", function(child, e, x, y) {
+  applyFocusedField();
+  if (e.altKey) {
+    const newCell = child.model.clone();
+    graph.addCell(newCell);
+    newCell.translate(100, 100);
+  }
 });
 
 $("#container").mousemove(function(e) {
@@ -884,7 +889,7 @@ $(window).on("keydown", function(event) {
 });
 
 $(window).resize(function() {
-  applyTextFields();
+  applyFocusedField();
   var $window = $(window);
   var $container = $("#container");
   $container.height($window.innerHeight());
@@ -937,6 +942,11 @@ $(window).trigger("resize");
 $("#paper").contextmenu({
   width: 150,
   items: [
+    {
+      text: "Starting Text",
+      alias: "1-0",
+      action: add(joint.shapes.dialogue.StartingText)
+    },
     { text: "Text", alias: "1-1", action: add(joint.shapes.dialogue.Text) },
     { text: "Choice", alias: "1-2", action: add(joint.shapes.dialogue.Choice) },
     { text: "Branch", alias: "1-3", action: add(joint.shapes.dialogue.Branch) },
@@ -956,14 +966,3 @@ $("#paper").contextmenu({
     }
   ]
 });
-
-///AUTOLOAD IF URL HAS ? WILDCARD
-
-if (loadOnStart != null) {
-  loadOnStart += ".json";
-  console.log(loadOnStart);
-  graph.clear();
-  filename = loadOnStart;
-  graph.fromJSON(JSON.parse(localStorage[loadOnStart]));
-  //graph.fromJSON(JSON.parse(fs.readFileSync(filename, 'utf8')));
-}

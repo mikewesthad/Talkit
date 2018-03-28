@@ -7,8 +7,8 @@
     "lib": "lib"
   },
   "scripts": {
-    "dev":
-      "browser-sync start --files \"*.html, *.css, *.js\" --server --port 8080"
+    "dev": "browser-sync start --files \"*.html, *.css, *.js\" --server --port 8080",
+    "start": "electron ."
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,11 @@
   },
   "homepage": "https://github.com/mikewesthad/Talkit#readme",
   "dependencies": {
-    "browser-sync": "^2.23.6"
+    "browser-sync": "^2.23.6",
+    "electron": "^1.8.4",
+    "jointjs": "^2.0.1",
+    "jquery": "^3.3.1",
+    "jquery-contextmenu": "^2.6.4",
+    "underscore": "^1.8.3"
   }
 }
